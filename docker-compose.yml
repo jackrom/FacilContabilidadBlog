@@ -81,3 +81,74 @@ services:
         window: 15s
       labels:
         - "traefik.enable=false"
+
+  # mysql
+  db:
+    image: mariadb:10.6.4-focal
+    command: '--default-authentication-plugin=mysql_native_password'
+    volumes:
+      - db_data:/var/lib/mysql:rw
+      - configuration/conf.d/mysql.cnf:/etc/mysql/conf.d/my.cnf:rw
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m  #tamaño máximo para fichero de log 10Mb
+        max-file: 2    #numero máximo de fichero de log que se guardarán
+        labels: "produccion, java, asdfasdf"   #aquí estaríamos añadiendo etiquetado a los logs generados por este contenedor (muy últil cuando usamos un sistema de concentración de logs)
+    healthcheck:
+      test: '/usr/bin/mysql --user=healthcheck --password=healthcheck --execute "SHOW DATABASES;"'
+      interval: 1m
+      retries: 1
+      timeout: 10s
+    environment:
+      - MYSQL_ROOT_PASSWORD=10092558@Sissi
+      - MYSQL_USER=jackrom
+      - MYSQL_PASSWORD=10092558@Sissi
+    ports:
+      - '3306:3306'
+    expose:
+      - 3306
+      - 33060
+    networks:
+      - webnet
+    network_mode: bridge
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 15s
+      labels:
+        - "traefik.enable=false"
+
+  # phpmyadmin
+  phpmyadmin:
+    image: phpmyadmin
+    hostname: "phpmyadmin"
+    restart: always
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=jackrom
+      - PMA_PASSWORD=10092558@Sissi
+    networks:
+      - webnet
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+networks:
+  webnet:
+    driver: overlay
+
+volumes:
+  db_data:
+  wp_data:
